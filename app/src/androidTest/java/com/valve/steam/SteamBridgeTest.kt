@@ -26,12 +26,13 @@ class SteamBridgeTest {
     }
 
     @Test
-    fun nativeLoadService_returnsBooleanWithoutCrash() {
-        // Without the actual .so files this returns false but must NOT crash
-        val result = SteamBridge.nativeLoadService()
-        // When .so files are staged this must be true; without them it can be false
-        // We just assert it completes without throwing
-        assertNotNull("nativeLoadService must return a value", result)
+    fun nativeLoadServiceAt_withRealValveLibs_returnsTrue() {
+        val ctx = InstrumentationRegistry.getInstrumentation().targetContext
+        val nativeDir = ctx.applicationInfo.nativeLibraryDir
+        val staged = java.io.File(nativeDir, "steamservice.so")
+        assertTrue("steamservice.so should be packaged into nativeLibraryDir", staged.exists())
+        val result = SteamBridge.nativeLoadServiceAt(nativeDir)
+        assertTrue("nativeLoadServiceAt should dlopen the real Valve Android libs", result)
     }
 
     @Test

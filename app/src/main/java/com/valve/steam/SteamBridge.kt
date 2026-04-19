@@ -16,8 +16,11 @@ object SteamBridge {
     // Version string from the native layer -- used as smoke test
     external fun nativeGetVersion(): String
 
-    // Load steamservice.so and resolve symbols via dlopen/dlsym
+    // Load steamservice.so and resolve symbols via dlopen/dlsym using soname lookup
     external fun nativeLoadService(): Boolean
+
+    // Load steamservice.so using an absolute nativeLibraryDir path (more reliable on Android)
+    external fun nativeLoadServiceAt(nativeLibraryDir: String): Boolean
 
     // Start the IPC server thread; steamDataPath = app files dir + "/Steam"
     external fun nativeStartThread(steamDataPath: String): Boolean

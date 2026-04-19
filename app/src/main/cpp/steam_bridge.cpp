@@ -36,7 +36,7 @@ static SteamService_Stop_t         g_Stop         = nullptr;
 static SteamService_Shutdown_t     g_Shutdown     = nullptr;
 
 // ---------------------------------------------------------------------------
-// Load dependencies in order before steamservice.so
+// Load a library by soname or absolute path
 // ---------------------------------------------------------------------------
 static bool load_dep(const char* name) {
     void* h = dlopen(name, RTLD_NOW | RTLD_GLOBAL);
@@ -56,7 +56,7 @@ extern "C" {
 JNIEXPORT jstring JNICALL
 Java_com_valve_steam_SteamBridge_nativeGetVersion(JNIEnv* env, jclass) {
     char buf[64];
-    snprintf(buf, sizeof(buf), "steam_bridge/1.0 NDK=%d ABI=arm64-v8a", __NDK_MAJOR__);
+    snprintf(buf, sizeof(buf), "steam_bridge/1.1 NDK=%d ABI=arm64-v8a", __NDK_MAJOR__);
     return env->NewStringUTF(buf);
 }
 
@@ -67,9 +67,9 @@ Java_com_valve_steam_SteamBridge_nativeLoadService(JNIEnv* env, jclass) {
         return JNI_TRUE;
     }
 
-    // Load in dependency order — each subsequent .so needs the previous ones
+    // These are the actual Valve Android libs staged into jniLibs/arm64-v8a.
+    // readelf verification shows they only depend on Android system libs and each other.
     const char* deps[] = {
-        "libsteam_api.so",          // may not exist yet -- ignore failure
         "libtier0_s.so",
         "libvstdlib_s.so",
         "libsteamnetworkingsockets.so",
@@ -77,16 +77,16 @@ Java_com_valve_steam_SteamBridge_nativeLoadService(JNIEnv* env, jclass) {
         nullptr
     };
     for (int i = 0; deps[i]; i++) {
-        // tier0 and vstdlib are required; others we warn on failure
         bool ok = load_dep(deps[i]);
-        if (!ok && (strcmp(deps[i], "libtier0_s.so") == 0 ||
-                    strcmp(deps[i], "libvstdlib_s.so") == 0)) {
+        if (!ok) {
             LOGE("Required dependency %s failed to load", deps[i]);
             return JNI_FALSE;
         }
     }
 
-    g_service_handle = dlopen("libsteamservice.so", RTLD_NOW | RTLD_GLOBAL);
+    // IMPORTANT: the Valve library is named steamservice.so, not libsteamservice.so.
+    // Its SONAME is also steamservice.so.
+    g_service_handle = dlopen("steamservice.so", RTLD_NOW | RTLD_GLOBAL);
     if (!g_service_handle) {
         LOGE("dlopen(steamservice.so) failed: %s", dlerror());
         return JNI_FALSE;
@@ -108,6 +108,49 @@ Java_com_valve_steam_SteamBridge_nativeLoadService(JNIEnv* env, jclass) {
 
     LOGI("Symbols resolved: StartThread=%p GetIPCServer=%p Stop=%p Shutdown=%p",
          g_StartThread, g_GetIPCServer, g_Stop, g_Shutdown);
+    return JNI_TRUE;
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_valve_steam_SteamBridge_nativeLoadServiceAt(JNIEnv* env, jclass, jstring jNativeLibDir) {
+    if (g_service_handle) {
+        LOGI("steamservice.so already loaded");
+        return JNI_TRUE;
+    }
+
+    const char* nativeLibDir = env->GetStringUTFChars(jNativeLibDir, nullptr);
+    std::string base(nativeLibDir ? nativeLibDir : "");
+    env->ReleaseStringUTFChars(jNativeLibDir, nativeLibDir);
+    if (!base.empty() && base.back() != '/' && base.back() != '\\') base.push_back('/');
+
+    std::string dep1 = base + "libtier0_s.so";
+    std::string dep2 = base + "libvstdlib_s.so";
+    std::string dep3 = base + "libsteamnetworkingsockets.so";
+    std::string dep4 = base + "libsteamclient.so";
+    std::string svc  = base + "steamservice.so";
+
+    if (!load_dep(dep1.c_str())) return JNI_FALSE;
+    if (!load_dep(dep2.c_str())) return JNI_FALSE;
+    if (!load_dep(dep3.c_str())) return JNI_FALSE;
+    if (!load_dep(dep4.c_str())) return JNI_FALSE;
+
+    g_service_handle = dlopen(svc.c_str(), RTLD_NOW | RTLD_GLOBAL);
+    if (!g_service_handle) {
+        LOGE("dlopen(%s) failed: %s", svc.c_str(), dlerror());
+        return JNI_FALSE;
+    }
+
+    g_StartThread  = (SteamService_StartThread_t)  dlsym(g_service_handle, "SteamService_StartThread");
+    g_GetIPCServer = (SteamService_GetIPCServer_t) dlsym(g_service_handle, "SteamService_GetIPCServer");
+    g_Stop         = (SteamService_Stop_t)         dlsym(g_service_handle, "SteamService_Stop");
+    g_Shutdown     = (SteamService_Shutdown_t)     dlsym(g_service_handle, "SteamService_Shutdown");
+
+    if (!g_StartThread || !g_Stop) {
+        LOGE("Symbol resolution failed after absolute-path load");
+        dlclose(g_service_handle);
+        g_service_handle = nullptr;
+        return JNI_FALSE;
+    }
     return JNI_TRUE;
 }
 
