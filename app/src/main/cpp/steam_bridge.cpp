@@ -1,14 +1,13 @@
 /*
  * steam_bridge.cpp
  *
- * Thin JNI wrapper that dlopen's steamservice.so (which exports plain C
- * functions, not JNI-named functions) and bridges them to Kotlin/Java.
+ * Thin JNI wrapper that dlopen's Valve's steamservice.so (plain C exports,
+ * not JNI-named functions) and bridges them to Kotlin/Java.
  *
- * Chunk 1 test target:
- *   - nativeLoadService()  -> dlopen succeeds, returns true
- *   - nativeStartThread()  -> SteamService_StartThread called, returns bool
- *   - nativeStop()         -> SteamService_Stop called
- *   - nativeGetVersion()   -> returns build string for smoke-test
+ * Current goal:
+ *   - load steamservice.so directly from the app nativeLibraryDir
+ *   - resolve SteamService_* exports
+ *   - start/stop the service thread from Android code
  */
 
 #include <jni.h>
@@ -36,15 +35,25 @@ static SteamService_Stop_t         g_Stop         = nullptr;
 static SteamService_Shutdown_t     g_Shutdown     = nullptr;
 
 // ---------------------------------------------------------------------------
-// Load a library by soname or absolute path
+// Resolve exported SteamService_* symbols from a loaded handle
 // ---------------------------------------------------------------------------
-static bool load_dep(const char* name) {
-    void* h = dlopen(name, RTLD_NOW | RTLD_GLOBAL);
-    if (!h) {
-        LOGE("dlopen(%s) failed: %s", name, dlerror());
+static bool resolve_service_symbols() {
+    g_StartThread  = (SteamService_StartThread_t)  dlsym(g_service_handle, "SteamService_StartThread");
+    g_GetIPCServer = (SteamService_GetIPCServer_t) dlsym(g_service_handle, "SteamService_GetIPCServer");
+    g_Stop         = (SteamService_Stop_t)         dlsym(g_service_handle, "SteamService_Stop");
+    g_Shutdown     = (SteamService_Shutdown_t)     dlsym(g_service_handle, "SteamService_Shutdown");
+
+    if (!g_StartThread || !g_Stop) {
+        LOGE("Symbol resolution failed: StartThread=%p Stop=%p", g_StartThread, g_Stop);
+        g_StartThread = nullptr;
+        g_GetIPCServer = nullptr;
+        g_Stop = nullptr;
+        g_Shutdown = nullptr;
         return false;
     }
-    LOGI("dlopen(%s) OK @ %p", name, h);
+
+    LOGI("Symbols resolved: StartThread=%p GetIPCServer=%p Stop=%p Shutdown=%p",
+         g_StartThread, g_GetIPCServer, g_Stop, g_Shutdown);
     return true;
 }
 
@@ -67,23 +76,6 @@ Java_com_valve_steam_SteamBridge_nativeLoadService(JNIEnv* env, jclass) {
         return JNI_TRUE;
     }
 
-    // These are the actual Valve Android libs staged into jniLibs/arm64-v8a.
-    // readelf verification shows they only depend on Android system libs and each other.
-    const char* deps[] = {
-        "libtier0_s.so",
-        "libvstdlib_s.so",
-        "libsteamnetworkingsockets.so",
-        "libsteamclient.so",
-        nullptr
-    };
-    for (int i = 0; deps[i]; i++) {
-        bool ok = load_dep(deps[i]);
-        if (!ok) {
-            LOGE("Required dependency %s failed to load", deps[i]);
-            return JNI_FALSE;
-        }
-    }
-
     // IMPORTANT: the Valve library is named steamservice.so, not libsteamservice.so.
     // Its SONAME is also steamservice.so.
     g_service_handle = dlopen("steamservice.so", RTLD_NOW | RTLD_GLOBAL);
@@ -93,21 +85,12 @@ Java_com_valve_steam_SteamBridge_nativeLoadService(JNIEnv* env, jclass) {
     }
     LOGI("steamservice.so loaded @ %p", g_service_handle);
 
-    // Resolve symbols
-    g_StartThread  = (SteamService_StartThread_t)  dlsym(g_service_handle, "SteamService_StartThread");
-    g_GetIPCServer = (SteamService_GetIPCServer_t) dlsym(g_service_handle, "SteamService_GetIPCServer");
-    g_Stop         = (SteamService_Stop_t)         dlsym(g_service_handle, "SteamService_Stop");
-    g_Shutdown     = (SteamService_Shutdown_t)     dlsym(g_service_handle, "SteamService_Shutdown");
-
-    if (!g_StartThread || !g_Stop) {
-        LOGE("Symbol resolution failed: StartThread=%p Stop=%p", g_StartThread, g_Stop);
+    if (!resolve_service_symbols()) {
         dlclose(g_service_handle);
         g_service_handle = nullptr;
         return JNI_FALSE;
     }
 
-    LOGI("Symbols resolved: StartThread=%p GetIPCServer=%p Stop=%p Shutdown=%p",
-         g_StartThread, g_GetIPCServer, g_Stop, g_Shutdown);
     return JNI_TRUE;
 }
 
@@ -123,30 +106,17 @@ Java_com_valve_steam_SteamBridge_nativeLoadServiceAt(JNIEnv* env, jclass, jstrin
     env->ReleaseStringUTFChars(jNativeLibDir, nativeLibDir);
     if (!base.empty() && base.back() != '/' && base.back() != '\\') base.push_back('/');
 
-    std::string dep1 = base + "libtier0_s.so";
-    std::string dep2 = base + "libvstdlib_s.so";
-    std::string dep3 = base + "libsteamnetworkingsockets.so";
-    std::string dep4 = base + "libsteamclient.so";
-    std::string svc  = base + "steamservice.so";
-
-    if (!load_dep(dep1.c_str())) return JNI_FALSE;
-    if (!load_dep(dep2.c_str())) return JNI_FALSE;
-    if (!load_dep(dep3.c_str())) return JNI_FALSE;
-    if (!load_dep(dep4.c_str())) return JNI_FALSE;
+    std::string svc = base + "steamservice.so";
+    LOGI("Attempting absolute-path load: %s", svc.c_str());
 
     g_service_handle = dlopen(svc.c_str(), RTLD_NOW | RTLD_GLOBAL);
     if (!g_service_handle) {
         LOGE("dlopen(%s) failed: %s", svc.c_str(), dlerror());
         return JNI_FALSE;
     }
+    LOGI("steamservice.so loaded @ %p", g_service_handle);
 
-    g_StartThread  = (SteamService_StartThread_t)  dlsym(g_service_handle, "SteamService_StartThread");
-    g_GetIPCServer = (SteamService_GetIPCServer_t) dlsym(g_service_handle, "SteamService_GetIPCServer");
-    g_Stop         = (SteamService_Stop_t)         dlsym(g_service_handle, "SteamService_Stop");
-    g_Shutdown     = (SteamService_Shutdown_t)     dlsym(g_service_handle, "SteamService_Shutdown");
-
-    if (!g_StartThread || !g_Stop) {
-        LOGE("Symbol resolution failed after absolute-path load");
+    if (!resolve_service_symbols()) {
         dlclose(g_service_handle);
         g_service_handle = nullptr;
         return JNI_FALSE;
