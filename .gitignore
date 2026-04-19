@@ -1,0 +1,18 @@
+# Gradle build outputs
+app/build/
+build/
+.gradle/
+*.class
+*.dex
+
+# Local SDK path (machine-specific)
+local.properties
+
+# Android Studio
+.idea/
+*.iml
+.cxx/
+
+# OS
+.DS_Store
+Thumbs.db
