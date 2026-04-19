@@ -1,0 +1,158 @@
+{
+  "analysis_date": "2026-04-19",
+  "manifest_version": "1776387948",
+  "manifest_file": "steam_client_publicbeta_linuxarm64",
+  "platform_key": "linuxarm64",
+  "cdn_base": "https://client-update.akamai.steamstatic.com/",
+  "build_date": "2026-04-15T12:55:00Z",
+  "publish_date": "2026-04-17T16:54:00Z",
+
+  "android_package": {
+    "name": "bins_androidarm64_linuxarm64",
+    "file": "bins_androidarm64_linuxarm64.zip.0f9e61801f1f37426f029181aed25d465dfdb5df",
+    "compressed_bytes": 17881606,
+    "decompressed_bytes": 53477888,
+    "sha2": "3511a7d5ed360234019e54f76f9010b3d96471d618b83b1176592f8504106cfb",
+    "vz_file": "bins_androidarm64_linuxarm64.zip.vz.519c43897d437e291c6af4ce4769a5fe1425f2ee_8763442",
+    "vz_bytes": 8763442,
+    "sha2vz": "bc2e7a40acef908aa857ce168676c5762f72c3f598e3059a206b8f3da328a9ac"
+  },
+
+  "android_libraries": [
+    {
+      "path": "androidarm64/libsteamclient.so",
+      "size_bytes": 36700160,
+      "elf_arch": "aarch64",
+      "android_api_min": 21,
+      "ndk_version": "r29",
+      "ndk_build_id": "14206865",
+      "stripped": false,
+      "build_id_sha1": "6f1354254beb8240e13f94fef8d0ff7b0a3b470b",
+      "dynamic_imports": ["libandroid.so", "libdl.so", "libm.so", "libSDL3.so", "libSDL3_image.so", "libsteamwebrtc.so", "libsteam_api.so"],
+      "notable_exports": ["Steam_CreateSteamPipe", "Steam_LogOn", "Steam_LogOff", "Steam_BLoggedOn", "Breakpad_SteamMiniDumpInit"],
+      "build_slave": "steam_rel_alt_androidarm64"
+    },
+    {
+      "path": "androidarm64/steamservice.so",
+      "size_bytes": 7340032,
+      "elf_arch": "aarch64",
+      "android_api_min": 21,
+      "ndk_version": "r29",
+      "ndk_build_id": "14206865",
+      "stripped": false,
+      "build_id_sha1": "375dde67ce965e346b17d2d916ed823d96f41b60",
+      "dynamic_imports": ["libandroid.so", "libdl.so", "libm.so", "libsteam_api.so"],
+      "notable_exports": ["SteamService_StartThread", "SteamService_GetIPCServer", "SteamService_Stop", "SteamService_Shutdown"],
+      "build_slave": "steam_rel_alt_androidarm64"
+    },
+    {
+      "path": "androidarm64/libsteamnetworkingsockets.so",
+      "size_bytes": 8073216,
+      "elf_arch": "aarch64",
+      "android_api_min": 21,
+      "ndk_version": "r29",
+      "ndk_build_id": "14206865",
+      "stripped": false,
+      "build_id_sha1": "c3b36b3256b5e2e820a7856bc51d525bf5f435e8",
+      "dynamic_imports": ["libandroid.so", "libdl.so", "libm.so", "libsteam_api.so"],
+      "build_slave": "steam_rel_alt_androidarm64"
+    },
+    {
+      "path": "androidarm64/libtier0_s.so",
+      "size_bytes": 519168,
+      "elf_arch": "aarch64",
+      "android_api_min": 21,
+      "ndk_version": "r29",
+      "ndk_build_id": "14206865",
+      "stripped": false,
+      "build_id_sha1": "031a7efcfdbabd06d6081462b5d28231170a14b7",
+      "dynamic_imports": ["libc.so", "libdl.so", "liblog.so"],
+      "build_slave": "steam_rel_alt_androidarm64"
+    },
+    {
+      "path": "androidarm64/libvstdlib_s.so",
+      "size_bytes": 699392,
+      "elf_arch": "aarch64",
+      "android_api_min": 21,
+      "ndk_version": "r29",
+      "ndk_build_id": "14206865",
+      "stripped": false,
+      "build_id_sha1": "8a1fb3b0ec16fde2a9ad5ed56433c2f52e6667c1",
+      "dynamic_imports": ["libandroid.so", "libdl.so", "libm.so", "libtier0_s.so"],
+      "build_slave": "steam_rel_alt_androidarm64"
+    }
+  ],
+
+  "android_ui_evidence": {
+    "controller_configs": [
+      {
+        "file": "public_all/controller_base/chord_android.vdf",
+        "controller_type": "controller_android",
+        "description": "Android gamepad chord mapping"
+      },
+      {
+        "file": "public_all/controller_base/chord_mobile_touch.vdf",
+        "controller_type": "controller_mobile_touch",
+        "description": "Mobile touchscreen controller with volume/media key bindings and haptic feedback"
+      }
+    ],
+    "ui_assets": [
+      "steamui_websrc/steamui/images/controller/controller_config_controller_android.png",
+      "steamui_websrc/steamui/images/controller/controller_config_controller_touch.png"
+    ],
+    "js_platform_enums": {
+      "k_EPlatformTypeAndroid32": 7,
+      "k_EPlatformTypeAndroid64": 8
+    },
+    "js_flags": [
+      "IN_MOBILE_WEBVIEW",
+      "force_android_view",
+      "RestorePopupStateForMobile"
+    ],
+    "js_device_strings": [
+      { "id": -500, "label": "Android" },
+      { "id": -499, "label": "Android 6.x" },
+      { "id": -498, "label": "Android 7.x" },
+      { "id": -497, "label": "Android 8.x" },
+      { "id": -496, "label": "Android 9.x" }
+    ]
+  },
+
+  "vza_format": {
+    "magic": "VZa",
+    "compression": "LZMA",
+    "header_layout": [
+      { "offset": 0, "size": 3, "field": "magic", "value": "VZa" },
+      { "offset": 3, "size": 1, "field": "flags" },
+      { "offset": 4, "size": 4, "field": "crc32_decompressed", "endian": "little" },
+      { "offset": 8, "size": 4, "field": "lzma_dict_size", "endian": "little" },
+      { "offset": 12, "size": "N", "field": "lzma_body_raw" },
+      { "offset": -10, "size": "variable", "field": "footer" },
+      { "offset": -2, "size": 2, "field": "terminator", "value": "zv" }
+    ],
+    "lzma_props_byte": "0x5D",
+    "uncompressed_size_hint": "0xFFFFFFFFFFFFFFFF (unknown, rely on EOS marker)",
+    "footer_sizes_observed": [6, 10]
+  },
+
+  "missing_for_apk": [
+    { "name": "libSDL3.so", "platform": "android-arm64", "blocking": true, "source": "open-source, buildable" },
+    { "name": "libSDL3_image.so", "platform": "android-arm64", "blocking": true, "source": "open-source, buildable" },
+    { "name": "libsteamwebrtc.so", "platform": "android-arm64", "blocking": false, "source": "Valve internal" },
+    { "name": "libsteam_api.so", "platform": "android-arm64", "blocking": true, "source": "Valve internal / Steamworks SDK" },
+    { "name": "WebKit/CEF", "platform": "android-arm64", "blocking": true, "source": "System WebView (interim) or bundled Chromium" },
+    { "name": "Java/Kotlin wrapper", "platform": "android", "blocking": true, "source": "must be written" }
+  ],
+
+  "apk_size_estimates": {
+    "minimal_system_webview_no_webrtc_mb": 50,
+    "standard_system_webview_mb": 70,
+    "full_bundled_chromium_mb": 200
+  },
+
+  "completion_estimate_pct": 85,
+  "remaining_effort_pct": 15,
+
+  "total_packages": 35,
+  "total_manifest_bytes_uncompressed": 971628843
+}

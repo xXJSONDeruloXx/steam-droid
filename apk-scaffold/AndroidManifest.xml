@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.valvesoftware.steam">
+
+    <!-- Network -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>
+    <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE"/>
+
+    <!-- Background service (required API 26+) -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC"/>
+
+    <!-- Auto-start -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+
+    <!-- Input / audio -->
+    <uses-permission android:name="android.permission.VIBRATE"/>
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS"/>
+
+    <!-- Storage: READ_EXTERNAL_STORAGE only needed below API 33 -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32"/>
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="29"/>
+    <!-- For game installations on API 30+ -->
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE"/>
+
+    <!-- Installing game APKs downloaded via Steam -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>
+
+    <!-- Keep CPU awake during downloads / streaming -->
+    <uses-permission android:name="android.permission.WAKE_LOCK"/>
+
+    <!-- Controller rumble via USB -->
+    <uses-permission android:name="android.permission.USB_PERMISSION"
+        tools:ignore="ProtectedPermissions"/>
+
+    <application
+        android:label="Steam"
+        android:icon="@drawable/ic_steam"
+        android:roundIcon="@drawable/ic_steam_round"
+        android:theme="@style/Theme.Steam.Fullscreen"
+        android:hardwareAccelerated="true"
+        android:largeHeap="true"
+        android:extractNativeLibs="true"
+        android:networkSecurityConfig="@xml/network_security_config"
+        android:supportsRtl="true">
+
+        <!-- Main UI activity -->
+        <activity
+            android:name=".SteamMainActivity"
+            android:exported="true"
+            android:configChanges="keyboard|keyboardHidden|orientation|screenSize|uiMode|density"
+            android:launchMode="singleTask"
+            android:screenOrientation="unspecified"
+            android:windowSoftInputMode="adjustResize">
+
+            <!-- Launcher icon -->
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+
+            <!-- steam:// deep links -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="steam"/>
+            </intent-filter>
+
+            <!-- steambrowser:// links -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="steambrowser"/>
+            </intent-filter>
+
+        </activity>
+
+        <!-- Background IPC service wrapping steamservice.so -->
+        <service
+            android:name=".SteamBackgroundService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync"
+            android:stopWithTask="false"/>
+
+        <!-- Auto-start receiver -->
+        <receiver
+            android:name=".SteamBootReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED"/>
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
+            </intent-filter>
+        </receiver>
+
+        <!-- FileProvider for sharing screenshots -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="com.valvesoftware.steam.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_provider_paths"/>
+        </provider>
+
+    </application>
+
+</manifest>
