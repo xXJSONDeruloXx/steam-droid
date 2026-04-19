@@ -19,6 +19,7 @@ class SteamBackgroundService : Service() {
         private const val NOTIFICATION_ID = 1001
         private const val ACTION_START = "com.valve.steam.action.START_SERVICE"
         private const val ACTION_STOP = "com.valve.steam.action.STOP_SERVICE"
+        private const val DEBUG_STARTUP_DELAY_MS = 8000L
 
         fun start(context: Context) {
             val intent = Intent(context, SteamBackgroundService::class.java).setAction(ACTION_START)
@@ -83,6 +84,8 @@ class SteamBackgroundService : Service() {
             try {
                 Log.i(TAG, "nativeLibraryDir=$nativeLibDir")
                 Log.i(TAG, "steamDataDir=${steamDataDir.absolutePath} exists=${steamDataDir.exists()} writable=${steamDataDir.canWrite()}")
+                Log.i(TAG, "Delaying startup for ${DEBUG_STARTUP_DELAY_MS}ms to allow tracing attachment")
+                Thread.sleep(DEBUG_STARTUP_DELAY_MS)
 
                 val loaded = SteamBridge.nativeLoadServiceAt(nativeLibDir)
                 Log.i(TAG, "nativeLoadServiceAt -> $loaded")

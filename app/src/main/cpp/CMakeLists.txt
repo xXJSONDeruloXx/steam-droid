@@ -9,3 +9,12 @@ target_link_libraries(steam_bridge
     android
     log
     dl)
+
+# Investigation stubs: if steamservice.so tries to dlopen these at runtime,
+# their constructors/logging will tell us in logcat.
+add_library(steam_api SHARED steam_api_stub.cpp)
+target_link_libraries(steam_api android log)
+
+add_library(crashhandler SHARED crashhandler_stub.cpp)
+set_target_properties(crashhandler PROPERTIES PREFIX "")
+target_link_libraries(crashhandler android log)

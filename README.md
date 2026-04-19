@@ -26,7 +26,8 @@ What this repo now provides:
 What is still missing publicly from Valve:
 - an official Android wrapper layer
 - Android WebView / Chromium integration for the full Steam UI
-- device-side validation on ARM64 hardware
+- Android `crashhandler.so` runtime used by `steamservice.so`
+- other Android-side service dependencies such as `libsteam_api.so`, `libSDL3.so`, `libSDL3_image.so`, and likely `libsteamwebrtc.so`
 
 ---
 
@@ -116,10 +117,14 @@ Green and committed:
 - `steam_bridge.cpp` now correctly loads `steamservice.so` by its real SONAME
 - local staging of Valve binaries is reproducible via scripts, not git-tracked blobs
 
-Not yet proven on device in this repo:
-- `nativeLoadServiceAt()` against a real ARM64 Android device
-- WebView namespace shim for the full `window.SteamClient.*` API
-- loading the actual Steam UI bundle inside Android WebView
+Latest on-device bring-up status:
+- `nativeLoadServiceAt()` is now proven on real ARM64 Android devices
+- `SteamService_StartThread(...)` still does **not** complete successfully
+- two concrete boot blockers were identified during live testing:
+  - an OpenSSL / ARM hwcap probe path that executes unsupported SHA-512 instructions on some devices
+  - a deeper startup dependency on `crashhandler.so` / `crashhandler004`
+- WebView namespace shim for the full `window.SteamClient.*` API is still not implemented
+- loading the actual Steam UI bundle inside Android WebView is still not implemented
 
 ---
 

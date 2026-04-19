@@ -5,6 +5,56 @@
 The five Android .so files prove the core client is built and shipping. The following components
 are absent from the manifest but required for a complete APK.
 
+## What *is* publicly obtainable from the manifest right now
+
+These packages / files are useful and have now been verified against live device bring-up work:
+
+- `bins_androidarm64_linuxarm64`
+  - `libsteamclient.so`
+  - `libsteamnetworkingsockets.so`
+  - `libtier0_s.so`
+  - `libvstdlib_s.so`
+  - `steamservice.so`
+- `steamui_websrc_all`
+  - full React / webpack Steam UI bundle
+- `public_all`
+  - controller configs and other shared runtime resources
+  - `resource/registrykeys.vdf` (confirmed present)
+- `resources_all`
+  - shared Steam icons / textures / cached resources
+- `strings_en_all` / `strings_all`
+  - localized strings for the client UI
+- `bins_linuxarm64`
+  - contains a **Linux** `ubuntu12_32/crashhandler.so`, which is useful as a reference binary
+  - does **not** solve the missing Android crashhandler runtime
+
+These packages are enough to prove the Android client core exists and to stage a serious prototype,
+but they are **not** enough to complete native service startup on-device.
+
+---
+
+## 0. crashhandler.so (Android ARM64)
+
+**Status:** Missing from the Android manifest packages. A Linux `crashhandler.so` exists in
+`bins_linuxarm64` (`ubuntu12_32/crashhandler.so`), but no Android build is currently published.
+
+**Why needed:** Live device testing shows `steamservice.so` loads `crashhandler.so` and requests
+interface `crashhandler004` during `SteamService_StartThread(...)`. This is not a superficial
+file existence check; the service expects a real object graph / vtable contract. Placeholder
+stubs can move execution farther, but startup still dies in native code after crashhandler
+interaction.
+
+**Observed bring-up evidence:**
+- `nativeLoadServiceAt(...)` succeeds on multiple Android devices
+- `SteamService_StartThread(...)` proceeds far enough to load `crashhandler.so`
+- `CreateInterface("crashhandler004")` is requested
+- startup still aborts without a real Android crashhandler implementation
+
+**Path to fix:** Valve would need to publish the Android crashhandler runtime, or the interface
+would need to be fully reverse-engineered and reimplemented compatibly.
+
+---
+
 ---
 
 ## 1. libSDL3.so (Android ARM64)
@@ -123,13 +173,14 @@ functionality. The new full client will need to either integrate with or replace
 
 ## Summary Table
 
-| Missing Component         | Complexity | Valve Has Internally? | Blocking? |
-|---------------------------|------------|----------------------|-----------|
-| libSDL3.so (Android)      | Low        | Almost certainly yes | Yes       |
-| libSDL3_image.so (Android)| Low        | Almost certainly yes | Yes       |
-| libsteamwebrtc.so (Android)| High      | Likely yes           | Partial   |
-| libsteam_api.so (Android) | Medium     | Yes                  | Yes       |
-| CEF/WebView for Android   | Very High  | In progress          | Yes       |
-| Java/Kotlin wrapper       | Medium     | Yes (unreleased)     | Yes       |
-| First-run bootstrapper    | Medium     | Likely planned       | No (v1)   |
-| Steam Guard integration   | Medium     | Partial              | No (v1)   |
+| Missing Component          | Complexity | Valve Has Internally? | Blocking? |
+|----------------------------|------------|----------------------|-----------|
+| crashhandler.so (Android)  | Medium     | Almost certainly yes | Yes       |
+| libSDL3.so (Android)       | Low        | Almost certainly yes | Yes       |
+| libSDL3_image.so (Android) | Low        | Almost certainly yes | Yes       |
+| libsteamwebrtc.so (Android)| High       | Likely yes           | Partial   |
+| libsteam_api.so (Android)  | Medium     | Yes                  | Yes       |
+| CEF/WebView for Android    | Very High  | In progress          | Yes       |
+| Java/Kotlin wrapper        | Medium     | Yes (unreleased)     | Yes       |
+| First-run bootstrapper     | Medium     | Likely planned       | No (v1)   |
+| Steam Guard integration    | Medium     | Partial              | No (v1)   |

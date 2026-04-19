@@ -15,6 +15,7 @@
 #include <dlfcn.h>
 #include <string>
 #include <cstring>
+#include <cstdlib>
 
 #define TAG "SteamBridge"
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO,  TAG, __VA_ARGS__)
@@ -108,6 +109,11 @@ Java_com_valve_steam_SteamBridge_nativeLoadServiceAt(JNIEnv* env, jclass, jstrin
 
     std::string svc = base + "steamservice.so";
     LOGI("Attempting absolute-path load: %s", svc.c_str());
+
+    // Investigation/workaround: force OpenSSL to skip ARM hwcap probing paths.
+    // On this device, steamservice.so hits SIGILL in _armv8_sha512_probe during startup.
+    setenv("OPENSSL_armcap", "0", 1);
+    LOGI("Set OPENSSL_armcap=0");
 
     g_service_handle = dlopen(svc.c_str(), RTLD_NOW | RTLD_GLOBAL);
     if (!g_service_handle) {
